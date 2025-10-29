@@ -245,7 +245,7 @@ def bert_search(query, model, embeddings, df, top_k=5):
     results = df.iloc[top_indices].copy().reset_index(drop=True)
     return results
 
-def display_results(results, method_name):
+def display_results(results):
     """Display search results in a clean card format."""
     if results.empty:
         st.warning("No results found.")
