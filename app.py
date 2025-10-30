@@ -371,7 +371,7 @@ def main():
         
         with st.spinner("Searching with TF-IDF..."):
             tfidf_res = tfidf_search(query, vectorizer, tfidf_matrix, df, top_k=top_k)
-            display_results(tfidf_res, "TF-IDF")
+            display_results(tfidf_res)
 
         st.divider()
 
@@ -381,7 +381,7 @@ def main():
         
         with st.spinner("Searching with BERT..."):
             bert_res = bert_search(query, model, embeddings, df, top_k=top_k)
-            display_results(bert_res, "BERT")
+            display_results(bert_res)
 
 if __name__ == "__main__":
     main()
