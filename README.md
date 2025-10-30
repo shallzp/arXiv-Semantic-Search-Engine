@@ -2,9 +2,9 @@
 
 
 ## Overview
-This project builds a search engine for scientific research papers that compares traditional keyword search with modern semantic search techniques. The system enables users to enter natural language queries and retrieve the most relevant papers from a large corpus using two distinct approaches:
-- **Keyword Search:** Uses TF-IDF vectorization and cosine similarity to find papers matching query keywords exactly.
-- **Semantic Search:** Uses Sentence-BERT embeddings to find conceptually similar papers based on the meaning of abstracts.
+This project builds a search engine for scientific research papers that compares traditional keyword-based search with modern semantic search techniques. The system enables users to enter natural language queries and retrieve the most relevant papers from a large corpus using two distinct approaches:
+- **Keyword Search:** Uses TF-IDF vectorization paired with cosine similarity to find papers that match keywords in user queries exactly within abstracts and titles.
+- **Semantic Search:** Uses Sentence-BERT embeddings to interpret the conceptual similarity between user queries and paper content, enabling retrieval based on the meaning of abstracts, titles, and optionally authors.
 
 
 ## Dataset
@@ -21,18 +21,39 @@ Key columns used:
 ## Methodology
 
 ### Data Preprocessing
-- Text cleaning includes lowercasing, punctuation removal, and stopword filtering to prepare abstracts for TF-IDF vectorization.
+- Raw text data from paper abstracts, titles, and authors undergo cleaning:
+   - Lowercase conversion
+   - Punctuation removal
+   - Whitespace trimming
+   - For abstracts and titles: optional stopword removal and token normalization
+- Author names are standardized for exact matching-based filter searches.
 
 ### Keyword Search (TF-IDF)
-- TF-IDF vectorizer built with `max_features=500000`, ignoring very frequent (`max_df=0.8`) and very rare (`min_df=5`) terms.
-- Abstracts converted to sparse TF-IDF vectors.
-- User queries are cleaned and vectorized the same way.
-- Cosine similarity between query and document vectors ranks documents for retrieval.
+- Separate TF-IDF vectorizers are built for abstracts and titles with:
+   - max_features=500000
+   - ilter threshold parameters max_df=0.8 and min_df=5 to exclude noisy terms
+- Abstracts and titles are vectorized into respective sparse matrices.
+- User queries are pre-processed identically and transformed using the fitted vectorizer.
+- Cosine similarity between query and document vectors ranks papers by keyword relevance.
+- Author search uses exact substring matching over author name strings for filtering
 
 ### Semantic Search (Sentence-BERT)
-- Pre-trained `all-MiniLM-L6-v2` Sentence-BERT model encodes all abstracts into 384-dimensional dense vectors.
-- Queries are encoded similarly to produce embeddings.
-- Cosine similarity between query and document embeddings ranks papers based on semantic relevance.
+- The pretrained SentenceTransformer model all-MiniLM-L6-v2 embeds abstracts, titles, and authors into a shared 384-dimensional semantic vector space.
+- Embeddings capture contextual meaning beyond exact keyword matching.
+- Query texts are encoded into embeddings, and cosine similarity calculates semantic closeness to each document embedding.
+- This enables retrieval of papers conceptually matching the query even when words differ.
+
+### Search Capabilities
+- The system supports:
+   - Content (abstracts) search via both TF-IDF keyword matching and Sentence-BERT semantic similarity
+   - Title search with keyword and semantic methods
+   - Author search with exact matching for high precision and semantic similarity optionally available
+- Users can select search type and method via the UI to tailor matching granularity.
+
+### Data and Model Persistence
+- Fitted TF-IDF vectorizers and sparse matrices are serialized with pickle for reuse.
+- Sentence-BERT embeddings are precomputed and stored for fast similarity queries.
+- Efficient caching and loading mechanisms in the Streamlit app improve responsiveness.
 
 
 ## Quickstart
@@ -74,4 +95,4 @@ Access the app via the link in your terminal (usually http://localhost:8501)
 
 
 
-This project demonstrates key differences in retrieval results between traditional keyword and modern semantic search methods, providing an educational foundation for building enhanced scientific search engines.
+This project demonstrates the key differences in retrieval results between traditional keyword-based search and modern semantic search methods, providing a comprehensive and educational foundation for building advanced scientific search engines that leverage both exact term matching and contextual understanding of paper content.
