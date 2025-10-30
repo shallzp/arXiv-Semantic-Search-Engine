@@ -273,50 +273,47 @@ def display_results(results):
             date_parts.append(f"Updated: {format_date(row['update_date'])}")
         
         if date_parts:
-            meta_items.append(f"ðŸ“… {' | '.join(date_parts)}")
+            meta_items.append(f"📅 {' | '.join(date_parts)}")
         
         if 'num_versions' in row and not pd.isna(row['num_versions']):
-            meta_items.append(f"ðŸ“ Version {int(row['num_versions'])}")
+            meta_items.append(f"📝 Version {int(row['num_versions'])}")
         
         if 'journal-ref' in row and not pd.isna(row['journal-ref']) and str(row['journal-ref']).strip():
             journal = str(row['journal-ref'])[:60]
-            meta_items.append(f"ðŸ“– {journal}")
+            meta_items.append(f"📖 {journal}")
         else:
-            meta_items.append("ðŸ“– ")
+            meta_items.append("📖 ")
         
         if 'doi' in row and not pd.isna(row['doi']) and str(row['doi']).strip():
-            meta_items.append(f'<a href="https://doi.org/{row["doi"]}" target="_blank" class="doi-link">ðŸ”— DOI</a>')
+            meta_items.append(f'<a href="https://doi.org/{row["doi"]}" target="_blank" class="doi-link">🔗 DOI</a>')
         else:
-            meta_items.append(f'<a href="https://arxiv.org/abs/{row["id"]}" target="_blank" class="doi-link">ðŸ”— arXiv</a>')
+            meta_items.append(f'<a href="https://arxiv.org/abs/{row["id"]}" target="_blank" class="doi-link">🔗 arXiv</a>')
         
         comments_section = ""
         if 'comments' in row and not pd.isna(row['comments']) and str(row['comments']).strip():
-            comments_section = f'<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">ðŸ’¬ {str(row["comments"])}</div>'
+            comments_section = f'<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">💬 {str(row["comments"])}</div>'
         else:
-            comments_section = '<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">ðŸ’¬ </div>'
+            comments_section = '<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">💬 </div>'
         
         # Build the meta section
         meta_section = ""
         if meta_items:
-            meta_items_html = ' â€¢ '.join(meta_items)
+            meta_items_html = ' • '.join(meta_items)
             meta_section = f'<div class="paper-meta">{meta_items_html}</div>'
         
         # Build the complete card HTML
         card_html = f"""
             <div class="result-card">
                 <div class="paper-title">{idx + 1}. {str(row['title'])}</div>
-                <div class="paper-authors">ðŸ‘¥ {format_authors(row.get('authors', ''))}</div>
+                <div class="paper-authors">👥 {format_authors(row.get('authors', ''))}</div>
                 <div style="margin-bottom: 0.75rem;">{format_categories(row.get('categories', ''))}</div>
                 <div class="paper-abstract">{truncate_text(row.get('abstract', ''))}</div>
                 {comments_section}
                 {meta_section}
-                <a href="https://arxiv.org/abs/{row['id']}" target="_blank" class="paper-link">ðŸ”— View on arXiv â†’</a>
+                <a href="https://arxiv.org/abs/{row['id']}" target="_blank" class="paper-link">🔗 View on arXiv →</a>
             </div>
         """
         
-        with st.container():
-            st.markdown(card_html, unsafe_allow_html=True)
-
 # ========== Streamlit UI ==========
 def main():
     st.title("🔬 arXiv Semantic Search Engine")
