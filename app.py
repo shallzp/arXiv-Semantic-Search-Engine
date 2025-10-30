@@ -133,6 +133,16 @@ st.markdown("""
         margin-top: 0.25rem;
     }
     
+    /* Search type tabs */
+    .search-type-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        color: #555;
+    }
+    
     /* Divider */
     hr {
         margin: 2rem 0;
@@ -158,11 +168,9 @@ def truncate_text(text, max_length=None):
         return "No abstract available"
     text = str(text)
     
-    # If max_length is None or not provided, return full text
     if max_length is None:
         return text
     
-    # Otherwise truncate if needed
     if len(text) <= max_length:
         return text
     return text[:max_length] + "..."
@@ -172,7 +180,6 @@ def format_authors(authors, max_authors=3):
     if pd.isna(authors) or authors == "":
         return "Unknown authors"
     
-    # Split by comma and clean up
     author_list = [a.strip() for a in str(authors).split(',')]
     
     if len(author_list) > max_authors:
@@ -194,21 +201,6 @@ def format_date(date_str):
         return "N/A"
     return str(date_str)
 
-def get_year_from_date(date_value):
-    """Extract year from date value (handles strings, Timestamps, etc.)"""
-    try:
-        if pd.isna(date_value):
-            return None
-        if hasattr(date_value, 'year'):  # Timestamp object
-            return str(date_value.year)
-        date_str = str(date_value)
-        # Try to extract year from various formats
-        if len(date_str) >= 4:
-            return date_str[:4]
-        return None
-    except:
-        return None
-
 # ========== Load data and models ==========
 @st.cache_data
 def load_data():
@@ -219,18 +211,29 @@ def load_data():
 def load_tfidf_model():
     with open('./data/tfidf_vectorizer.pkl', 'rb') as f:
         vectorizer = pickle.load(f)
-    with open('./data/tfidf_matrix.pkl', 'rb') as f:
-        tfidf_matrix = pickle.load(f)
-    return vectorizer, tfidf_matrix
+
+    with open('./data/tfidf_title_vectorizer.pkl', 'rb') as f:
+        title_vectorizer = pickle.load(f)
+
+    with open('./data/tfidf_abstract.pkl', 'rb') as f:
+        abstract_tfidf = pickle.load(f)
+
+    with open('./data/tfidf_title.pkl', 'rb') as f:
+        title_tfidf = pickle.load(f)
+    
+    return vectorizer, title_vectorizer, abstract_tfidf, title_tfidf
 
 @st.cache_resource
 def load_bert_model_and_embeddings():
     model = SentenceTransformer('all-MiniLM-L6-v2')
     embeddings = np.load('./data/abstract_embeddings.npy')
-    return model, embeddings
+    title_embeddings = np.load('./data/title_embeddings.npy')
+    
+    return model, embeddings, title_embeddings
 
 # ========== Search Functions ==========
 def tfidf_search(query, vectorizer, tfidf_matrix, df, top_k=5):
+    """TF-IDF based search (works for abstract, title, or author)."""
     query_clean = clean_text(query)
     query_vec = vectorizer.transform([query_clean])
     cosine_sim = cosine_similarity(query_vec, tfidf_matrix).flatten()
@@ -239,11 +242,19 @@ def tfidf_search(query, vectorizer, tfidf_matrix, df, top_k=5):
     return results
 
 def bert_search(query, model, embeddings, df, top_k=5):
+    """BERT-based semantic search (works for abstract, title, or author)."""
     query_emb = model.encode([query])
     cosine_scores = cosine_similarity(query_emb, embeddings)[0]
     top_indices = cosine_scores.argsort()[-top_k:][::-1]
     results = df.iloc[top_indices].copy().reset_index(drop=True)
     return results
+
+def search_authors(author_query, df, top_k=10):
+    """Exact match search for authors (keyword filtering)."""
+    author_query = author_query.strip().lower()
+    mask = df['authors'].str.lower().str.contains(author_query, na=False, regex=False)
+    results = df[mask].copy()
+    return results.head(top_k)
 
 def display_results(results):
     """Display search results in a clean card format."""
@@ -262,50 +273,50 @@ def display_results(results):
             date_parts.append(f"Updated: {format_date(row['update_date'])}")
         
         if date_parts:
-            meta_items.append(f"📅 {' | '.join(date_parts)}")
+            meta_items.append(f"ðŸ“… {' | '.join(date_parts)}")
         
         if 'num_versions' in row and not pd.isna(row['num_versions']):
-            meta_items.append(f"📝 Version {int(row['num_versions'])}")
+            meta_items.append(f"ðŸ“ Version {int(row['num_versions'])}")
         
         if 'journal-ref' in row and not pd.isna(row['journal-ref']) and str(row['journal-ref']).strip():
             journal = str(row['journal-ref'])[:60]
-            meta_items.append(f"📖 {journal}")
+            meta_items.append(f"ðŸ“– {journal}")
         else:
-            meta_items.append("📖 ")
+            meta_items.append("ðŸ“– ")
         
         if 'doi' in row and not pd.isna(row['doi']) and str(row['doi']).strip():
-            meta_items.append(f'<a href="https://doi.org/{row["doi"]}" target="_blank" class="doi-link">🔗 DOI</a>')
+            meta_items.append(f'<a href="https://doi.org/{row["doi"]}" target="_blank" class="doi-link">ðŸ”— DOI</a>')
         else:
-            meta_items.append(f'<a href="https://arxiv.org/abs/{row["id"]}" target="_blank" class="doi-link">🔗 arXiv</a>')
+            meta_items.append(f'<a href="https://arxiv.org/abs/{row["id"]}" target="_blank" class="doi-link">ðŸ”— arXiv</a>')
         
         comments_section = ""
         if 'comments' in row and not pd.isna(row['comments']) and str(row['comments']).strip():
-            comments_section = f'<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">💬 {str(row["comments"])}</div>'
+            comments_section = f'<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">ðŸ’¬ {str(row["comments"])}</div>'
         else:
-            comments_section = '<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">💬 </div>'
+            comments_section = '<div style="color: #808495; font-size: 0.85rem; margin-top: 0.5rem; font-style: italic;">ðŸ’¬ </div>'
         
         # Build the meta section
         meta_section = ""
         if meta_items:
-            meta_items_html = ' • '.join(meta_items)
+            meta_items_html = ' â€¢ '.join(meta_items)
             meta_section = f'<div class="paper-meta">{meta_items_html}</div>'
         
         # Build the complete card HTML
         card_html = f"""
             <div class="result-card">
                 <div class="paper-title">{idx + 1}. {str(row['title'])}</div>
-                <div class="paper-authors">👥 {format_authors(row.get('authors', ''))}</div>
+                <div class="paper-authors">ðŸ‘¥ {format_authors(row.get('authors', ''))}</div>
                 <div style="margin-bottom: 0.75rem;">{format_categories(row.get('categories', ''))}</div>
                 <div class="paper-abstract">{truncate_text(row.get('abstract', ''))}</div>
                 {comments_section}
                 {meta_section}
-                <a href="https://arxiv.org/abs/{row['id']}" target="_blank" class="paper-link">🔗 View on arXiv →</a>
+                <a href="https://arxiv.org/abs/{row['id']}" target="_blank" class="paper-link">ðŸ”— View on arXiv â†’</a>
             </div>
         """
         
         with st.container():
             st.markdown(card_html, unsafe_allow_html=True)
-            
+
 # ========== Streamlit UI ==========
 def main():
     st.title("🔬 arXiv Semantic Search Engine")
@@ -314,8 +325,8 @@ def main():
     # Load data and models
     with st.spinner("🔄 Loading models and data..."):
         df = load_data()
-        vectorizer, tfidf_matrix = load_tfidf_model()
-        model, embeddings = load_bert_model_and_embeddings()
+        vectorizer, title_vectorizer, title_tfidf, abstract_tfidf = load_tfidf_model()
+        model, abstract_embeddings, title_embeddings = load_bert_model_and_embeddings()
     
     # Display statistics
     try:
@@ -343,45 +354,110 @@ def main():
             </div>
         """, unsafe_allow_html=True)
     
-    # Create columns for search options
-    col1, col2, col3 = st.columns([3, 1, 1])
+    # Search type selection
+    search_type = st.radio(
+        "Search Type",
+        ["Content Search", "Title Search", "Author Search"],
+        horizontal=True
+    )
     
-    with col1:
-        query = st.text_input(
-            "Search Query",
-            placeholder="e.g., deep learning in medical imaging, quantum computing algorithms...",
-            label_visibility="collapsed"
-        )
-    
-    with col2:
-        label_col, select_col = st.columns([1, 2])
-        with label_col:
-            st.markdown('<p style="margin-top: 0.5rem;">Results:</p>', unsafe_allow_html=True)
-        with select_col:
-            top_k = st.selectbox("Results", [5, 10, 15, 20], index=0, label_visibility="collapsed")
-    
-    with col3:
-        search_button = st.button("Search", type="primary", use_container_width=True)
-
-    # Display results when query is entered
-    if query and (search_button or query):
-        # TF-IDF Results
-        st.subheader("TF-IDF Results")
-        st.caption("Keyword-based matching using term frequency")
+    # ========== CONTENT SEARCH ==========
+    if search_type == "Content Search":
+        st.markdown('<div class="search-type-info">🔍 Search by paper content (abstract) using semantic or keyword matching</div>', unsafe_allow_html=True)
         
-        with st.spinner("Searching with TF-IDF..."):
-            tfidf_res = tfidf_search(query, vectorizer, tfidf_matrix, df, top_k=top_k)
-            display_results(tfidf_res)
-
-        st.divider()
-
-        # BERT Results
-        st.subheader("BERT Results")
-        st.caption("Semantic understanding using neural embeddings")
+        col1, col2, col3 = st.columns([3, 1, 1])
         
-        with st.spinner("Searching with BERT..."):
-            bert_res = bert_search(query, model, embeddings, df, top_k=top_k)
-            display_results(bert_res)
+        with col1:
+            query = st.text_input(
+                "Search Query",
+                placeholder="e.g., deep learning in medical imaging, quantum computing...",
+                label_visibility="collapsed",
+                key="content_search"
+            )
+        
+        with col2:
+            search_method = st.selectbox("Method", ["TF-IDF", "BERT"], label_visibility="collapsed", key="content_method")
+        
+        with col3:
+            top_k = st.selectbox("Results", [5, 10, 15, 20], index=0, label_visibility="collapsed", key="content_results")
+        
+        search_button = st.button("Search", type="primary", use_container_width=True, key="content_button")
+        
+        if query and search_button:
+            if search_method == "TF-IDF":
+                st.subheader("TF-IDF Results - Abstract Search")
+                st.caption("Keyword-based matching using term frequency on abstracts")
+                with st.spinner("Searching..."):
+                    results = tfidf_search(query, vectorizer, abstract_tfidf, df, top_k=top_k)
+                    display_results(results)
+            else:
+                st.subheader("BERT Results - Abstract Search")
+                st.caption("Semantic understanding using neural embeddings on abstracts")
+                with st.spinner("Searching..."):
+                    results = bert_search(query, model, abstract_embeddings, df, top_k=top_k)
+                    display_results(results)
+    
+    # ========== TITLE SEARCH ==========
+    elif search_type == "Title Search":
+        st.markdown('<div class="search-type-info">📄 Search papers by title using semantic or keyword matching</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([3, 1, 1])
+        
+        with col1:
+            title_query = st.text_input(
+                "Title Keywords",
+                placeholder="e.g., transformer, neural network, optimization...",
+                label_visibility="collapsed",
+                key="title_search"
+            )
+        
+        with col2:
+            search_method = st.selectbox("Method", ["TF-IDF", "BERT"], label_visibility="collapsed", key="title_method")
+        
+        with col3:
+            top_k = st.selectbox("Results", [5, 10, 15, 20], index=1, label_visibility="collapsed", key="title_results")
+        
+        search_button = st.button("Search", type="primary", use_container_width=True, key="title_button")
+        
+        if title_query and search_button:
+            if search_method == "TF-IDF":
+                st.subheader("TF-IDF Results - Title Search")
+                st.caption("Keyword-based matching using term frequency on titles")
+                with st.spinner("Searching..."):
+                    results = tfidf_search(title_query, title_vectorizer, title_tfidf, df, top_k=top_k)
+                    display_results(results)
+            else:
+                st.subheader("BERT Results - Title Search")
+                st.caption("Semantic understanding using neural embeddings on titles")
+                with st.spinner("Searching..."):
+                    results = bert_search(title_query, model, title_embeddings, df, top_k=top_k)
+                    display_results(results)
+    
+    # ========== AUTHOR SEARCH ==========
+    elif search_type == "Author Search":
+        st.markdown('<div class="search-type-info">👤 Search papers by author name using exact match or semantic similarity</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            author_query = st.text_input(
+                "Author Name",
+                placeholder="e.g., Hinton, LeCun, Bengio...",
+                label_visibility="collapsed",
+                key="author_search"
+            )
+         
+        with col2:
+            top_k = st.selectbox("Results", [5, 10, 15, 20], index=1, label_visibility="collapsed", key="author_results")
+        
+        search_button = st.button("Search", type="primary", use_container_width=True, key="author_button")
+        
+        if author_query and search_button:
+            st.subheader(f"Papers by '{author_query}' - Exact Match")
+            st.caption("Filtering papers where author name contains the query")
+            with st.spinner("Searching..."):
+                results = search_authors(author_query, df, top_k=top_k)
+                display_results(results)
 
 if __name__ == "__main__":
     main()
