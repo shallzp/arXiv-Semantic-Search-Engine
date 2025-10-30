@@ -47,30 +47,44 @@ Key columns used:
 
 ---
 
-## Code Snippets
+## Quickstart
 
-### TF-IDF Vectorization
-vectorizer = TfidfVectorizer(max_features=500000, max_df=0.8, min_df=5)
-tfidf_matrix = vectorizer.fit_transform(df['abstract_clean'])
-
-### Keyword Search
-def tfidf_search(query, vectorizer, tfidf_matrix, df, top_k=5):
-query_clean = clean_text(query)
-query_vec = vectorizer.transform([query_clean])
-cosine_sim = cosine_similarity(query_vec, tfidf_matrix).flatten()
-top_indices = cosine_sim.argsort()[-top_k:][::-1]
-return df.iloc[top_indices]
+### Clone the Repository
+```
+git clone https://github.com/shallzp/arXiv-Semantic-Search-Engine.git
+cd arXiv-Semantic-Search-Engine
+```
 
 
-### Semantic Search with Sentence-BERT
-model = SentenceTransformer('all-MiniLM-L6-v2')
-embeddings = model.encode(df['abstract'].tolist(), batch_size=64)
+### Install Dependencies
 
-def semantic_search(query, model, embeddings, df, top_k=5):
-query_emb = model.encode([query])
-scores = cosine_similarity(query_emb, embeddings)
-top_indices = scores.argsort()[-top_k:][::-1]
-return df.iloc[top_indices]
+#### It's strongly recommended to use a virtual environment:
+```
+python -m venv venv
+source venv/bin/activate  # or .\venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
+
+
+### Prepare Data
+
+Download the arXiv dataset from https://www.kaggle.com/datasets/Cornell-University/arxiv?resource=download and place your data file inside the data/ directory.
+
+
+### Run Notebooks
+
+#### All steps for data cleaning, TF-IDF vectorization, and BERT embedding are provided in the notebooks/ folder:
+- preprocessing.ipynb
+- tf-idf.ipynb
+- bert.ipynb
+
+
+### Launch the Application
+```
+streamlit run app.py
+```
+
+Access the app via the link in your terminal (usually http://localhost:8501)
 
 ---
 
