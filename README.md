@@ -71,6 +71,7 @@ Access the app via the link in your terminal (usually http://localhost:8501)
 - Dataset provided by Cornell University’s arXiv.
 - Sentence-BERT model from the Hugging Face community.
 
----
+
+
 
 This project demonstrates key differences in retrieval results between traditional keyword and modern semantic search methods, providing an educational foundation for building enhanced scientific search engines.
