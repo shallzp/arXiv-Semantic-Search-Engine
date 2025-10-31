@@ -212,16 +212,16 @@ def load_tfidf_model():
     with open('./data/tfidf_vectorizer.pkl', 'rb') as f:
         vectorizer = pickle.load(f)
 
-    with open('./data/tfidf_title_vectorizer.pkl', 'rb') as f:
-        title_vectorizer = pickle.load(f)
-
     with open('./data/tfidf_abstract.pkl', 'rb') as f:
         abstract_tfidf = pickle.load(f)
+
+    with open('./data/tfidf_title_vectorizer.pkl', 'rb') as f:
+        title_vectorizer = pickle.load(f)
 
     with open('./data/tfidf_title.pkl', 'rb') as f:
         title_tfidf = pickle.load(f)
     
-    return vectorizer, title_vectorizer, abstract_tfidf, title_tfidf
+    return vectorizer, abstract_tfidf, title_vectorizer, title_tfidf
 
 @st.cache_resource
 def load_bert_model_and_embeddings():
@@ -313,6 +313,9 @@ def display_results(results):
                 <a href="https://arxiv.org/abs/{row['id']}" target="_blank" class="paper-link">🔗 View on arXiv →</a>
             </div>
         """
+
+        st.markdown(card_html, unsafe_allow_html=True)
+
         
 # ========== Streamlit UI ==========
 def main():
@@ -322,7 +325,7 @@ def main():
     # Load data and models
     with st.spinner("🔄 Loading models and data..."):
         df = load_data()
-        vectorizer, title_vectorizer, title_tfidf, abstract_tfidf = load_tfidf_model()
+        vectorizer, abstract_tfidf, title_vectorizer, title_tfidf = load_tfidf_model()
         model, abstract_embeddings, title_embeddings = load_bert_model_and_embeddings()
     
     # Display statistics
@@ -412,7 +415,7 @@ def main():
             search_method = st.selectbox("Method", ["TF-IDF", "BERT"], label_visibility="collapsed", key="title_method")
         
         with col3:
-            top_k = st.selectbox("Results", [5, 10, 15, 20], index=1, label_visibility="collapsed", key="title_results")
+            top_k = st.selectbox("Results", [5, 10, 15, 20], index=0, label_visibility="collapsed", key="title_results")
         
         search_button = st.button("Search", type="primary", use_container_width=True, key="title_button")
         
@@ -445,7 +448,7 @@ def main():
             )
          
         with col2:
-            top_k = st.selectbox("Results", [5, 10, 15, 20], index=1, label_visibility="collapsed", key="author_results")
+            top_k = st.selectbox("Results", [5, 10, 15, 20], index=0, label_visibility="collapsed", key="author_results")
         
         search_button = st.button("Search", type="primary", use_container_width=True, key="author_button")
         
